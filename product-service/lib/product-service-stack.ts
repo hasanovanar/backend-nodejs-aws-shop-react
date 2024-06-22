@@ -76,12 +76,27 @@ export class ProductServiceStack extends cdk.Stack {
     const stocksTableName = "stocks";
 
     // Create Lambda function for getProductsList
-    const getProductsListLambda = new lambda.Function(
+    const getProductsListLamFn = new lambda.Function(
       this,
-      "GetProductsListHandler",
+      "getProductsListLamFn",
       {
         runtime: lambda.Runtime.NODEJS_20_X,
         handler: "getProductsList.handler",
+        code: lambda.Code.fromAsset("lambda"),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTableName,
+          STOCKS_TABLE_NAME: stocksTableName,
+        },
+      }
+    );
+
+    // Lambda function for getting a product by ID
+    const getProductsByIdLamFn = new lambda.Function(
+      this,
+      "getProductsByIdLamFn",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "getProductsById.handler",
         code: lambda.Code.fromAsset("lambda"),
         environment: {
           PRODUCTS_TABLE_NAME: productsTableName,
@@ -94,9 +109,16 @@ export class ProductServiceStack extends cdk.Stack {
     const tableArnProducts = `arn:aws:dynamodb:${this.region}:${this.account}:table/${productsTableName}`;
     const tableArnStocks = `arn:aws:dynamodb:${this.region}:${this.account}:table/${stocksTableName}`;
 
-    getProductsListLambda.addToRolePolicy(
+    getProductsListLamFn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:Scan"],
+        resources: [tableArnProducts, tableArnStocks],
+      })
+    );
+
+    getProductsByIdLamFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:GetItem"],
         resources: [tableArnProducts, tableArnStocks],
       })
     );
@@ -109,8 +131,17 @@ export class ProductServiceStack extends cdk.Stack {
 
     const products = api.root.addResource("products");
     const getProductsIntegration = new apigateway.LambdaIntegration(
-      getProductsListLambda
+      getProductsListLamFn
     );
     products.addMethod("GET", getProductsIntegration); // GET /products
+
+    // Define the /products/{productId} resource
+    const productById = products.addResource("{productId}");
+
+    // Integrate the GET method with the Lambda function for getting a product by ID
+    productById.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(getProductsByIdLamFn)
+    );
   }
 }
