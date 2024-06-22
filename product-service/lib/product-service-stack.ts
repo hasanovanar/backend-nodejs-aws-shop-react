@@ -42,6 +42,17 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
+    // Create Lambda function for createProduct
+    const createProductLamFn = new lambda.Function(this, "createProductLamFn", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "createProduct.handler",
+      code: lambda.Code.fromAsset("lambda"),
+      environment: {
+        PRODUCTS_TABLE_NAME: productsTableName,
+        STOCKS_TABLE_NAME: stocksTableName,
+      },
+    });
+
     // Grant read permissions to the Lambda function for both tables
     const tableArnProducts = `arn:aws:dynamodb:${this.region}:${this.account}:table/${productsTableName}`;
     const tableArnStocks = `arn:aws:dynamodb:${this.region}:${this.account}:table/${stocksTableName}`;
@@ -60,6 +71,13 @@ export class ProductServiceStack extends cdk.Stack {
       })
     );
 
+    createProductLamFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:PutItem"],
+        resources: [tableArnProducts, tableArnStocks],
+      })
+    );
+
     // Create API Gateway
     const api = new apigateway.RestApi(this, "product-api", {
       restApiName: "Product Service",
@@ -71,6 +89,11 @@ export class ProductServiceStack extends cdk.Stack {
       getProductsListLamFn
     );
     products.addMethod("GET", getProductsIntegration); // GET /products
+
+    const createProductIntegration = new apigateway.LambdaIntegration(
+      createProductLamFn
+    );
+    products.addMethod("POST", createProductIntegration); // POST /products
 
     // Define the /products/{productId} resource
     const productById = products.addResource("{productId}");

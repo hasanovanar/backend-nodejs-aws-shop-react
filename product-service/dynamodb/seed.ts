@@ -1,6 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { v4 as uuidv4 } from "uuid";
+// import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 // Initialize the DynamoDB client
 const client = new DynamoDBClient({ region: "us-east-1" });
@@ -21,29 +22,29 @@ interface Stock {
 // Sample data
 const products: Product[] = [
   {
-    id: uuidv4(),
+    id: randomUUID(),
     title: "Product DynamoDB 2",
     description: "Description for product DynamoDB 2",
-    price: 400,
+    price: 300,
   },
   {
-    id: uuidv4(),
+    id: randomUUID(),
     title: "Product DynamoDB 3",
     description: "Description for product DynamoDB 3",
     price: 450,
   },
   {
-    id: uuidv4(),
+    id: randomUUID(),
     title: "Product DynamoDB 4",
     description: "Description for product DynamoDB 4",
-    price: 500,
+    price: 600,
   },
 ];
 
 const stocks: Stock[] = [
-  { product_id: products[0].id, count: 3 },
-  { product_id: products[1].id, count: 4 },
-  { product_id: products[2].id, count: 7 },
+  { product_id: products[0].id, count: 10 },
+  { product_id: products[1].id, count: 15 },
+  { product_id: products[2].id, count: 20 },
 ];
 
 async function seedProducts(): Promise<void> {
