@@ -43,7 +43,9 @@ export const handler = async (
       !title ||
       !description ||
       typeof price !== "number" ||
-      typeof count !== "number"
+      typeof count !== "number" ||
+      count < 0 ||
+      price <= 0
     ) {
       return {
         statusCode: 400,
