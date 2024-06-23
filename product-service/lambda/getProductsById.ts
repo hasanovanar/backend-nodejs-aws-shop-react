@@ -20,14 +20,6 @@ export const handler = async (
   };
 
   const productId = event.pathParameters?.productId;
-  /*
-  if (!productId) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ message: "Product ID is required" }),
-      headers,
-    };
-  }*/
 
   try {
     // Fetch product from the products table
