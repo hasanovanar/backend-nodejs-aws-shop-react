@@ -1,9 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-// import { v4 as uuidv4 } from "uuid";
 import { randomUUID } from "crypto";
 
-// Initialize the DynamoDB client
 const client = new DynamoDBClient({ region: "us-east-1" });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
 
@@ -19,7 +17,6 @@ interface Stock {
   count: number;
 }
 
-// Sample data
 const products: Product[] = [
   {
     id: randomUUID(),
