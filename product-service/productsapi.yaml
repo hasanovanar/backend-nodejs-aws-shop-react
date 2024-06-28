@@ -4,7 +4,7 @@ info:
   description: API for managing products
   version: 1.0.0
 servers:
-  - url: https://2r92h0rs80.execute-api.us-east-1.amazonaws.com/prod
+  - url: https://sdcrglzh8d.execute-api.us-east-1.amazonaws.com/prod
     description: AWS API Gateway
 paths:
   /products:
@@ -21,18 +21,97 @@ paths:
                 items:
                   type: object
                   properties:
-                    description:
-                      type: string
-                      example: "Product Description"
                     id:
                       type: string
                       example: "1"
+                    count:
+                      type: number
+                      example: 10
                     price:
                       type: number
                       example: 100
                     title:
                       type: string
                       example: "Product title"
+                    description:
+                      type: string
+                      example: "Product Description"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
+    post:
+      summary: Add a new product
+      operationId: createProduct
+      requestBody:
+        description: Product to add
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                count:
+                  type: number
+                  example: 10
+                price:
+                  type: number
+                  example: 100
+                title:
+                  type: string
+                  example: "New Product"
+                description:
+                  type: string
+                  example: "New Product Description"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "1"
+                  count:
+                    type: number
+                    example: 10
+                  price:
+                    type: number
+                    example: 100
+                  title:
+                    type: string
+                    example: "New Product"
+                  description:
+                    type: string
+                    example: "New Product Description"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid request payload
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /products/{productId}:
     get:
       summary: Get product by ID
@@ -53,18 +132,21 @@ paths:
               schema:
                 type: object
                 properties:
-                  description:
-                    type: string
-                    example: "Product Description"
                   id:
                     type: string
                     example: "1"
+                  count:
+                    type: number
+                    example: 10
                   price:
                     type: number
                     example: 100
                   title:
                     type: string
                     example: "Product title"
+                  description:
+                    type: string
+                    example: "Product Description"
         "404":
           description: Product not found
           content:
@@ -75,3 +157,13 @@ paths:
                   message:
                     type: string
                     example: Product not found
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
