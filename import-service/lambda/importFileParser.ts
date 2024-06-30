@@ -17,6 +17,7 @@ export const handler: S3Handler = async (event: S3Event) => {
   const params = {
     Bucket: bucket,
     Key: key,
+    ContentType: "text/csv",
   };
 
   const command = new GetObjectCommand(params);
@@ -39,6 +40,7 @@ export const handler: S3Handler = async (event: S3Event) => {
               Bucket: bucket,
               CopySource: `${bucket}/${key}`,
               Key: newKey,
+              ContentType: "text/csv",
             };
             const copyCommand = new CopyObjectCommand(copyParams);
             await s3.send(copyCommand);
@@ -47,6 +49,7 @@ export const handler: S3Handler = async (event: S3Event) => {
             const deleteParams = {
               Bucket: bucket,
               Key: key,
+              ContentType: "text/csv",
             };
             const deleteCommand = new DeleteObjectCommand(deleteParams);
             await s3.send(deleteCommand);

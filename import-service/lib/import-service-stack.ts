@@ -1,5 +1,4 @@
-/*
-import * as cdk from "aws-cdk-lib";
+/*import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
@@ -31,10 +30,14 @@ export class ImportServiceStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "importFileParser.handler",
       code: lambda.Code.fromAsset("lambda"),
+      environment: {
+        BUCKET_NAME: bucket.bucketName,
+      },
     });
 
-    // Grant permissions to the importProductsFile Lambda function
+    // Grant permissions to the Lambda functions
     bucket.grantReadWrite(importProductsFile);
+    bucket.grantReadWrite(importFileParser);
 
     // Create an API Gateway
     const api = new apigateway.RestApi(this, "importApi", {
@@ -53,9 +56,6 @@ export class ImportServiceStack extends cdk.Stack {
       new s3Notifications.LambdaDestination(importFileParser),
       { prefix: "uploaded/" }
     );
-
-    // Grant S3 read permissions to importFileParser Lambda function
-    bucket.grantRead(importFileParser);
   }
 } */
 
@@ -106,8 +106,30 @@ export class ImportServiceStack extends cdk.Stack {
     });
 
     const importProd = api.root.addResource("import");
+
+    // Define the CORS options
+    const corsOptions: apigateway.CorsOptions = {
+      allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      allowMethods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+      allowHeaders: [
+        "Content-Type",
+        "X-Amz-Date",
+        "Authorization",
+        "X-Api-Key",
+        "X-Amz-Security-Token",
+      ],
+    };
+
+    // Add CORS to the resource
+    importProd.addCorsPreflight(corsOptions);
+
     importProd.addMethod(
       "GET",
+      new apigateway.LambdaIntegration(importProductsFile)
+    );
+
+    importProd.addMethod(
+      "PUT",
       new apigateway.LambdaIntegration(importProductsFile)
     );
 

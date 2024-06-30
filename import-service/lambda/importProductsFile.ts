@@ -1,5 +1,3 @@
-// const s3 = new S3({ region: 'us-east-1' });
-
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -16,6 +14,7 @@ export const handler = async (
   const params = {
     Bucket: bucketName,
     Key: key,
+    ContentType: "text/csv",
   };
 
   const command = new PutObjectCommand(params);
@@ -24,5 +23,11 @@ export const handler = async (
   return {
     statusCode: 200,
     body: JSON.stringify({ url: signedUrl }),
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, PUT, OPTIONS, DELETE",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
   };
 };
