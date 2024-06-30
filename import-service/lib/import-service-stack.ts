@@ -67,11 +67,6 @@ export class ImportServiceStack extends cdk.Stack {
       new apigateway.LambdaIntegration(importProductsFile)
     );
 
-    // importProd.addMethod(
-    //   "PUT",
-    //   new apigateway.LambdaIntegration(importProductsFile)
-    // );
-
     // Set up S3 event notification to trigger importFileParser Lambda function
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
