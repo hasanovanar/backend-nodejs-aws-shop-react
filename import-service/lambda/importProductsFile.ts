@@ -9,14 +9,7 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   const bucketName = process.env.BUCKET_NAME!;
   const fileName = event.queryStringParameters?.name;
-  if (!fileName) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        message: "Missing required query parameter: name",
-      }),
-    };
-  }
+
   const key = `uploaded/${fileName}`;
 
   const params = {
@@ -30,9 +23,9 @@ export const handler = async (
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ signedUrl }),
+    body: JSON.stringify(signedUrl),
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "text/plain",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, PUT, OPTIONS, DELETE",
       "Access-Control-Allow-Headers": "Content-Type",
