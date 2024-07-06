@@ -87,10 +87,21 @@ export class ProductServiceStack extends cdk.Stack {
       displayName: "Create Product Topic",
     });
 
-    // Create Email Subscription for the SNS topic
+    // Create Email Subscription for the SNS topic (without filter policy)
     createProductTopic.addSubscription(
       new snsSubscriptions.EmailSubscription("anar.hasanov79@gmail.com")
     );
+
+    // Create Email Subscription for the SNS topic (with filter policy)
+    // createProductTopic.addSubscription(
+    //   new snsSubscriptions.EmailSubscription("anarhasanov79@outlook.com", {
+    //     filterPolicy: {
+    //       count: sns.SubscriptionFilter.numericFilter({
+    //         greaterThan: 40,
+    //       }),
+    //     },
+    //   })
+    // );
 
     const catalogBatchProcess = new lambda.Function(
       this,
