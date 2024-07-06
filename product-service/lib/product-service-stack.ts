@@ -3,16 +3,16 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Define the names of the existing DynamoDB tables
     const productsTableName = "products";
     const stocksTableName = "stocks";
 
-    // Create Lambda function for getProductsList
     const getProductsListLamFn = new lambda.Function(
       this,
       "getProductsListLamFn",
@@ -27,7 +27,6 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
-    // Lambda function for getting a product by ID
     const getProductsByIdLamFn = new lambda.Function(
       this,
       "getProductsByIdLamFn",
@@ -42,7 +41,6 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
-    // Create Lambda function for createProduct
     const createProductLamFn = new lambda.Function(this, "createProductLamFn", {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "createProduct.handler",
@@ -53,7 +51,6 @@ export class ProductServiceStack extends cdk.Stack {
       },
     });
 
-    // Grant read permissions to the Lambda function for both tables
     const tableArnProducts = `arn:aws:dynamodb:${this.region}:${this.account}:table/${productsTableName}`;
     const tableArnStocks = `arn:aws:dynamodb:${this.region}:${this.account}:table/${stocksTableName}`;
 
@@ -78,7 +75,40 @@ export class ProductServiceStack extends cdk.Stack {
       })
     );
 
-    // Create API Gateway
+    const catalogItemsQueue = new sqs.Queue(this, "catalogItemsQueue", {
+      visibilityTimeout: cdk.Duration.seconds(300),
+      receiveMessageWaitTime: cdk.Duration.seconds(20),
+    });
+
+    const catalogBatchProcessLamFn = new lambda.Function(
+      this,
+      "catalogBatchProcessLamFn",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "catalogBatchProcess.handler",
+        code: lambda.Code.fromAsset("lambda"),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTableName,
+          STOCKS_TABLE_NAME: stocksTableName,
+        },
+      }
+    );
+
+    catalogItemsQueue.grantConsumeMessages(catalogBatchProcessLamFn);
+
+    catalogBatchProcessLamFn.addEventSource(
+      new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
+        batchSize: 5,
+      })
+    );
+
+    catalogBatchProcessLamFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:PutItem"],
+        resources: [tableArnProducts, tableArnStocks],
+      })
+    );
+
     const api = new apigateway.RestApi(this, "product-api", {
       restApiName: "Product Service",
       description: "This service serves products.",
@@ -88,20 +118,28 @@ export class ProductServiceStack extends cdk.Stack {
     const getProductsIntegration = new apigateway.LambdaIntegration(
       getProductsListLamFn
     );
-    products.addMethod("GET", getProductsIntegration); // GET /products
+    products.addMethod("GET", getProductsIntegration);
 
     const createProductIntegration = new apigateway.LambdaIntegration(
       createProductLamFn
     );
-    products.addMethod("POST", createProductIntegration); // POST /products
+    products.addMethod("POST", createProductIntegration);
 
-    // Define the /products/{productId} resource
     const productById = products.addResource("{productId}");
-
-    // Integrate the GET method with the Lambda function for getting a product by ID
     productById.addMethod(
       "GET",
       new apigateway.LambdaIntegration(getProductsByIdLamFn)
     );
+
+    // Export the SQS Queue ARN
+    new cdk.CfnOutput(this, "CatalogItemsQueueArn", {
+      value: catalogItemsQueue.queueArn,
+      exportName: "CatalogItemsQueueArn",
+    });
+
+    new cdk.CfnOutput(this, "CatalogItemsQueueUrl", {
+      value: catalogItemsQueue.queueUrl,
+      exportName: "CatalogItemsQueueUrl",
+    });
   }
 }
