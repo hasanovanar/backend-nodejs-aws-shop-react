@@ -5,6 +5,8 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -80,9 +82,19 @@ export class ProductServiceStack extends cdk.Stack {
       receiveMessageWaitTime: cdk.Duration.seconds(20),
     });
 
-    const catalogBatchProcessLamFn = new lambda.Function(
+    // Create SNS topic
+    const createProductTopic = new sns.Topic(this, "createProductTopic", {
+      displayName: "Create Product Topic",
+    });
+
+    // Create Email Subscription for the SNS topic
+    createProductTopic.addSubscription(
+      new snsSubscriptions.EmailSubscription("anar.hasanov79@gmail.com")
+    );
+
+    const catalogBatchProcess = new lambda.Function(
       this,
-      "catalogBatchProcessLamFn",
+      "catalogBatchProcess",
       {
         runtime: lambda.Runtime.NODEJS_20_X,
         handler: "catalogBatchProcess.handler",
@@ -90,24 +102,28 @@ export class ProductServiceStack extends cdk.Stack {
         environment: {
           PRODUCTS_TABLE_NAME: productsTableName,
           STOCKS_TABLE_NAME: stocksTableName,
+          SNS_TOPIC_ARN: createProductTopic.topicArn,
         },
       }
     );
 
-    catalogItemsQueue.grantConsumeMessages(catalogBatchProcessLamFn);
+    catalogItemsQueue.grantConsumeMessages(catalogBatchProcess);
 
-    catalogBatchProcessLamFn.addEventSource(
+    catalogBatchProcess.addEventSource(
       new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
         batchSize: 5,
       })
     );
 
-    catalogBatchProcessLamFn.addToRolePolicy(
+    catalogBatchProcess.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:PutItem"],
         resources: [tableArnProducts, tableArnStocks],
       })
     );
+
+    // Grant publish permissions to the Lambda function
+    createProductTopic.grantPublish(catalogBatchProcess);
 
     const api = new apigateway.RestApi(this, "product-api", {
       restApiName: "Product Service",
@@ -140,6 +156,11 @@ export class ProductServiceStack extends cdk.Stack {
     new cdk.CfnOutput(this, "CatalogItemsQueueUrl", {
       value: catalogItemsQueue.queueUrl,
       exportName: "CatalogItemsQueueUrl",
+    });
+
+    new cdk.CfnOutput(this, "CreateProductArn", {
+      value: createProductTopic.topicArn,
+      description: "The ARN of the SNS topic",
     });
   }
 }
