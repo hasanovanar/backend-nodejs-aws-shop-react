@@ -4,6 +4,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3Notifications from "aws-cdk-lib/aws-s3-notifications";
+import * as iam from "aws-cdk-lib/aws-iam";
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -15,6 +16,10 @@ export class ImportServiceStack extends cdk.Stack {
       "ExistingBucket",
       "import-products-service"
     );
+
+    // Import the SQS Queue ARN
+    const catalogItemsQueueArn = cdk.Fn.importValue("CatalogItemsQueueArn");
+    const catalogItemsQueueUrl = cdk.Fn.importValue("CatalogItemsQueueUrl");
 
     // Create Lambda functions
     const importProductsFile = new lambda.Function(this, "importProductsFile", {
@@ -32,12 +37,21 @@ export class ImportServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda"),
       environment: {
         BUCKET_NAME: bucket.bucketName,
+        SQS_QUEUE_URL: catalogItemsQueueUrl,
       },
     });
 
     // Grant permissions to the Lambda functions
     bucket.grantReadWrite(importProductsFile);
     bucket.grantReadWrite(importFileParser);
+
+    // Grant permission to the importFileParser function
+    importFileParser.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["sqs:SendMessage"],
+        resources: [catalogItemsQueueArn],
+      })
+    );
 
     // Create an API Gateway
     const api = new apigateway.RestApi(this, "importApi", {
