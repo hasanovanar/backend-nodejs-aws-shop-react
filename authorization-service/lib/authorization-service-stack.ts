@@ -18,5 +18,10 @@ export class AuthorizationServiceStack extends cdk.Stack {
         PASSWORD: process.env.PASSWORD || "",
       },
     });
+    // Export the basicAuthorizer Lambda function ARN
+    new cdk.CfnOutput(this, "BasicAuthorizerLambdaArn", {
+      value: basicAuthorizer.functionArn,
+      exportName: "BasicAuthorizerLambdaArn",
+    });
   }
 }
