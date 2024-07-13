@@ -21,6 +21,9 @@ export class ImportServiceStack extends cdk.Stack {
     const catalogItemsQueueArn = cdk.Fn.importValue("CatalogItemsQueueArn");
     const catalogItemsQueueUrl = cdk.Fn.importValue("CatalogItemsQueueUrl");
 
+    // Import the basicAuthorizer Lambda function ARN
+    const basicAuthorizerArn = cdk.Fn.importValue("BasicAuthorizerLambdaArn");
+
     // Create Lambda functions
     const importProductsFile = new lambda.Function(this, "importProductsFile", {
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -76,9 +79,28 @@ export class ImportServiceStack extends cdk.Stack {
     // Add CORS to the resource
     importProd.addCorsPreflight(corsOptions);
 
+    // importProd.addMethod(
+    //   "GET",
+    //   new apigateway.LambdaIntegration(importProductsFile)
+    // );
+
+    // Create Lambda authorizer
+    const authorizer = new apigateway.TokenAuthorizer(this, "basicAuthorizer", {
+      handler: lambda.Function.fromFunctionArn(
+        this,
+        "BasicAuthorizerFunction",
+        basicAuthorizerArn
+      ),
+    });
+
+    // Add Lambda authorization to the /import path
     importProd.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(importProductsFile)
+      new apigateway.LambdaIntegration(importProductsFile),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      }
     );
 
     // Set up S3 event notification to trigger importFileParser Lambda function
