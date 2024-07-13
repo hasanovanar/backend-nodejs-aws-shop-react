@@ -5,10 +5,14 @@ import {
   CopyObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
 
 const s3 = new S3Client({ region: process.env.AWS_REGION || "us-east-1" });
+const sqs = new SQSClient({ region: process.env.AWS_REGION || "us-east-1" });
+
+const { SQS_QUEUE_URL } = process.env;
 
 export const handler: S3Handler = async (event: S3Event) => {
   const bucket = event.Records[0].s3.bucket.name;
@@ -26,8 +30,22 @@ export const handler: S3Handler = async (event: S3Event) => {
   if (Body instanceof Readable) {
     await new Promise<void>((resolve, reject) => {
       Body.pipe(csvParser())
-        .on("data", (data: any) => {
-          console.log("Record: ", data);
+        .on("data", async (data: any) => {
+          console.log("Parsed CSV record: ", data);
+
+          const messageParams = {
+            QueueUrl: SQS_QUEUE_URL,
+            MessageBody: JSON.stringify(data),
+          };
+
+          try {
+            const result = await sqs.send(
+              new SendMessageCommand(messageParams)
+            );
+            console.log("Message sent to SQS: ", result.MessageId);
+          } catch (error) {
+            console.error("Error sending message to SQS: ", error);
+          }
         })
         .on("end", async () => {
           console.log("CSV file processed successfully.");
