@@ -109,5 +109,35 @@ export class ImportServiceStack extends cdk.Stack {
       new s3Notifications.LambdaDestination(importFileParser),
       { prefix: "uploaded/" }
     );
+
+    //Add Gateway Responses for 401 and 403 errors with CORS headers
+
+    api.addGatewayResponse("UnauthorizedResponse", {
+      type: apigateway.ResponseType.UNAUTHORIZED,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+        // "Access-Control-Allow-Methods": "GET, PUT, OPTIONS, DELETE",
+      },
+      statusCode: "401",
+      templates: {
+        "application/json": JSON.stringify({
+          message: "Unauthorized and not allowed",
+        }),
+      },
+    });
+
+    api.addGatewayResponse("AccessDeniedResponse", {
+      type: apigateway.ResponseType.ACCESS_DENIED,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+        // "Access-Control-Allow-Methods": "GET, PUT, OPTIONS, DELETE",
+      },
+      statusCode: "403",
+      templates: {
+        "application/json": JSON.stringify({ message: "Forbidden" }),
+      },
+    });
   }
 }
