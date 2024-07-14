@@ -5,10 +5,6 @@ import {
   APIGatewayAuthorizerResult,
 } from "aws-lambda";
 
-// import * as dotenv from "dotenv";
-
-// dotenv.config();
-
 export const handler = async (
   event: APIGatewayTokenAuthorizerEvent,
   context: Context,
