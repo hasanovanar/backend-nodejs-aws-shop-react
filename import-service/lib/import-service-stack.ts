@@ -79,11 +79,6 @@ export class ImportServiceStack extends cdk.Stack {
     // Add CORS to the resource
     importProd.addCorsPreflight(corsOptions);
 
-    // importProd.addMethod(
-    //   "GET",
-    //   new apigateway.LambdaIntegration(importProductsFile)
-    // );
-
     // Create Lambda authorizer
     const authorizer = new apigateway.TokenAuthorizer(this, "basicAuthorizer", {
       handler: lambda.Function.fromFunctionArn(
@@ -122,7 +117,7 @@ export class ImportServiceStack extends cdk.Stack {
       statusCode: "401",
       templates: {
         "application/json": JSON.stringify({
-          message: "Unauthorized and not allowed",
+          message: "Unauthorized AND not allowed",
         }),
       },
     });
